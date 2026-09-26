@@ -1,16 +1,9 @@
 name: Wanderlust CI Pipeline
 
 on:
-  workflow_dispatch:
-    inputs:
-      frontend_docker_tag:
-        description: 'Frontend Docker image tag'
-        required: true
-        type: string
-      backend_docker_tag:
-        description: 'Backend Docker image tag'
-        required: true
-        type: string
+  push:
+    tags:
+      - '*'
 
 env:
   DOCKERHUB_USERNAME: mukesh581
@@ -88,33 +81,51 @@ jobs:
   #       working-directory: Automations
   #       run: bash update${{ matrix.service }}new.sh
 
-  build-and-push:
-    name: Build and Push Docker Images
+  build-backend:
+    name: Build and Push Backend Image
     # needs: env-setup
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+ 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
+ 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
+ 
       - name: Build and Push Backend Image
         uses: docker/build-push-action@v6
         with:
           context: ./backend
           push: true
-          tags: ${{ env.DOCKERHUB_USERNAME }}/${{ env.BACKEND_IMAGE }}:${{ inputs.backend_docker_tag }}
-
+          tags: ${{ env.DOCKERHUB_USERNAME }}/${{ env.BACKEND_IMAGE }}:${{ github.ref_name }}
+ 
+  build-frontend:
+    name: Build and Push Frontend Image
+    # needs: env-setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+ 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+ 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+ 
       - name: Build and Push Frontend Image
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
           push: true
-          tags: ${{ env.DOCKERHUB_USERNAME }}/${{ env.FRONTEND_IMAGE }}:${{ inputs.frontend_docker_tag }}
+          tags: ${{ env.DOCKERHUB_USERNAME }}/${{ env.FRONTEND_IMAGE }}:${{ github.ref_name }}
+ 
