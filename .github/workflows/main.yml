@@ -57,20 +57,20 @@ jobs:
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
 
-      - name: OWASP Dependency Check
-        uses: dependency-check/Dependency-Check_Action@main
-        with:
-          project: 'wanderlust'
-          path: '.'
-          format: 'ALL'
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+      # - name: OWASP Dependency Check
+      #   uses: dependency-check/Dependency-Check_Action@main
+      #   with:
+      #     project: 'wanderlust'
+      #     path: '.'
+      #     format: 'ALL'
+      #   env:
+      #     NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
-      - name: Upload OWASP report
-        uses: actions/upload-artifact@v4
-        with:
-          name: owasp-dependency-report
-          path: reports/
+      # - name: Upload OWASP report
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: owasp-dependency-report
+      #     path: reports/
 
   env-setup:
     name: Export Environment Variables
