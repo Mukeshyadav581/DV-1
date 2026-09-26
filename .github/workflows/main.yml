@@ -74,7 +74,8 @@ jobs:
 
   env-setup:
     name: Export Environment Variables
-    needs: [code-quality, security-scan]
+    # needs: [code-quality, security-scan]
+    needs: [security-scan]
     runs-on: ubuntu-latest
     strategy:
       matrix:
