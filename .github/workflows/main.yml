@@ -72,25 +72,25 @@ jobs:
       #     name: owasp-dependency-report
       #     path: reports/
 
-  env-setup:
-    name: Export Environment Variables
-    # needs: [code-quality, security-scan]
-    needs: [security-scan]
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [backend, frontend]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  # env-setup:
+  #   name: Export Environment Variables
+  #   # needs: [code-quality, security-scan]
+  #   needs: [security-scan]
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       service: [backend, frontend]
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Run env setup script (${{ matrix.service }})
-        working-directory: Automations
-        run: bash update${{ matrix.service }}new.sh
+  #     - name: Run env setup script (${{ matrix.service }})
+  #       working-directory: Automations
+  #       run: bash update${{ matrix.service }}new.sh
 
   build-and-push:
     name: Build and Push Docker Images
-    needs: env-setup
+    # needs: env-setup
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
