@@ -2,6 +2,9 @@ name: Wanderlust CI Pipeline
 
 on:
   push:
+    branches:
+      - main
+      - stage
     tags:
       - '*'
 
@@ -47,7 +50,7 @@ jobs:
           scan-type: 'fs'
           scan-ref: '.'
           format: 'table'
-          exit-code: '0'
+          exit-code: '1'
           severity: 'CRITICAL,HIGH'
 
       # - name: OWASP Dependency Check
@@ -83,49 +86,101 @@ jobs:
 
   build-backend:
     name: Build and Push Backend Image
+    needs: security-scan
     # needs: env-setup
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
- 
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
- 
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
- 
+
+      - name: Determine image tag
+        id: set_tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "tag=dev-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.ref_name }}" == "stage" ]]; then
+            echo "tag=stage-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build and Push Backend Image
         uses: docker/build-push-action@v6
         with:
           context: ./backend
           push: true
-          tags: ${{ env.DOCKERHUB_USERNAME }}/${{ env.BACKEND_IMAGE }}:${{ github.ref_name }}
- 
+          tags: ${{ env.DOCKERHUB_USERNAME }}/${{ env.BACKEND_IMAGE }}:${{ steps.set_tag.outputs.tag }}
+
   build-frontend:
     name: Build and Push Frontend Image
+    needs: security-scan
     # needs: env-setup
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
- 
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
- 
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
- 
+
+      - name: Determine image tag
+        id: set_tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "tag=dev-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.ref_name }}" == "stage" ]]; then
+            echo "tag=stage-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build and Push Frontend Image
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
           push: true
-          tags: ${{ env.DOCKERHUB_USERNAME }}/${{ env.FRONTEND_IMAGE }}:${{ github.ref_name }}
- 
+          tags: ${{ env.DOCKERHUB_USERNAME }}/${{ env.FRONTEND_IMAGE }}:${{ steps.set_tag.outputs.tag }}
+
+  deploy:
+    name: Deploy to EKS
+    needs: [build-backend, build-frontend]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}
+
+      - name: Deploy Backend Image to EKS
+        run: |
+          kubectl set image deployment/backend backend=${{ env.DOCKERHUB_USERNAME }}/${{ env.BACKEND_IMAGE }}:${{ github.ref_name }} -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl rollout status deployment/backend -n ${{ secrets.EKS_NAMESPACE }}
+
+      - name: Deploy Frontend Image to EKS
+        run: |
+          kubectl set image deployment/frontend frontend=${{ env.DOCKERHUB_USERNAME }}/${{ env.FRONTEND_IMAGE }}:${{ github.ref_name }} -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl rollout status deployment/frontend -n ${{ secrets.EKS_NAMESPACE }}
