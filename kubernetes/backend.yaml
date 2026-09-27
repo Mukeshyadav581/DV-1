@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: thatgeekcontainer/wanderlust-backend-beta:v5
+          image: mukesh581/wanderlust-backend-beta:v0.3
           ports:
             - containerPort: 8080
 ---
@@ -28,7 +28,7 @@ metadata:
   name: backend-service
   namespace: wanderlust
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: backend
   ports:
