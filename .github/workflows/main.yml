@@ -177,10 +177,10 @@ jobs:
 
       - name: Deploy Backend Image to EKS
         run: |
-          kubectl set image deployment/backend backend=${{ env.DOCKERHUB_USERNAME }}/${{ env.BACKEND_IMAGE }}:${{ github.ref_name }} -n ${{ secrets.EKS_NAMESPACE }}
-          kubectl rollout status deployment/backend -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl set image deployment/backend-deployment backend=${{ env.DOCKERHUB_USERNAME }}/${{ env.BACKEND_IMAGE }}:${{ github.ref_name }} -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl rollout status deployment/backend-deployment -n ${{ secrets.EKS_NAMESPACE }}
 
       - name: Deploy Frontend Image to EKS
         run: |
-          kubectl set image deployment/frontend frontend=${{ env.DOCKERHUB_USERNAME }}/${{ env.FRONTEND_IMAGE }}:${{ github.ref_name }} -n ${{ secrets.EKS_NAMESPACE }}
-          kubectl rollout status deployment/frontend -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl set image deployment/frontend-deployment frontend=${{ env.DOCKERHUB_USERNAME }}/${{ env.FRONTEND_IMAGE }}:${{ github.ref_name }} -n ${{ secrets.EKS_NAMESPACE }}
+          kubectl rollout status deployment/frontend-deployment -n ${{ secrets.EKS_NAMESPACE }}
